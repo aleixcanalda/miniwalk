@@ -1,0 +1,21 @@
+[project]
+name = "miniwalk"
+version = "0.1.0"
+description = "miniwalk is a tool for genotyping SVs from minigraph .gfa graphs"
+authors = [
+    {name = "aleixcanalda", email = "aleix98@hotmail.com"},
+]
+dependencies = ["pandas","Bio","numpy"]
+requires-python = ">=3.10"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm]
+distribution = true
+
+[project.scripts]
+miniwalk = "miniwalk.main:main"
