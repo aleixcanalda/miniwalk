@@ -33,7 +33,14 @@ pip install .
 
 ## Pre-requisites
 
+### Dependencies
+* python>=3.10
+* nucmer>=4 - for running **ins2dup** module (see Workflow)
+Other dependencies should be installed during miniwalk installation (see Installation).
+
 This tool complements the minigraph output, therefore it is necessary to obtain a vcf file using minigraph. Moreover, you will need to have ![k8](https://github.com/attractivechaos/k8) installed in your environment.
+
+*IMPORTANT NOTE*: if your assemblies are highly fragmented, make sure to modify the -l and -d flags when mapping to minigraph, otherwise minigraph will not be able to map your assembly with its default parameters. For mapping to the Mtb-PRG, the flags -l 10000 and -d 5000 should work.
 
 This can be achieved using the following commands:
 
@@ -154,7 +161,7 @@ options:
 
 ## Output
 
-The vcf file outputted by my tool uses the INFO column to keep the information of the graph.
+The vcf file outputted by the tool uses the INFO column to keep the information of the graph.
 
 The information of the SV is specified in the ID column such as {SV type}.{SV size}. The REF columnholds the nodes found in the reference path whereas the ALT column holds the nodes in the sample paths. In the case of an asterisk '*', there are extra nodes in one of the paths.
 
@@ -170,6 +177,6 @@ NC_000962.3	1481197	INS.1674	TCGTCAAGAGCGCCGTGCCAACACCCCAGAACATGAGGTGGCCCACGGCGA
 
 ## Limitations
 
-* Only works with assemblies. Short-read assemblies may introduce more errors captured as false positives (even though this still remains the more precise approach compared to mapping raw short reads to a linear reference)
-* Tested only on *Mycobacterium tuberculosis*, not tested on eukaryotes (where heterozygosity might be important).
+* Only works with assemblies.
+* Tested only on *Mycobacterium tuberculosis*, not tested on eukaryotes or other bacterial species, though it should **in principle** work with any minigraph graph.
 * Inversions are only detected when they form a single node or an entire bubble, but not contiguous nodes in a bigger bubble; certain INVs could be missed.
