@@ -13,7 +13,7 @@ Miniwalk is a tool for genotyping SVs from a minigraph graph.
 
 I created this tool as I was interested in capturing SVs from short-read data and there doesn't seem to be such an approach with minigraph graphs as they are incompatible with the vg toolkit.
 
-It is only able to capture SVs from **assemblies**, not raw short-read data. Therefore, it is necessary to create an assembly (i.e. using Flye for long-read data or Shovill for short-read data).
+It is only able to capture SVs from **assemblies** or long reads, not raw short-read data. Therefore, it is necessary to create an assembly (i.e. using Shovill for short-read data). It is also recommended to create an assembly for long-read data, however long reads can be mapped to the graph and SVs genotyped using minigraph.
 
 ## Installation
 
@@ -40,7 +40,7 @@ Other dependencies should be installed during miniwalk installation (see Install
 
 This tool complements the minigraph output, therefore it is necessary to obtain a vcf file using minigraph. Moreover, you will need to have ![k8](https://github.com/attractivechaos/k8) installed in your environment.
 
-*IMPORTANT NOTE*: if your assemblies are highly fragmented, make sure to modify the -l and -d flags when mapping to minigraph, otherwise minigraph will not be able to map your assembly with its default parameters. For mapping to the Mtb-PRG, the flags -l 10000 and -d 5000 should work.
+*IMPORTANT NOTE*: if your assemblies are highly fragmented, make sure to modify the -l and -d flags when mapping to minigraph, otherwise minigraph will not be able to map your assembly with its default parameters. For mapping to the Mtb-PRG, the flags -l 10000 and -d 5000 should work. If mapping long-read data, the flags may need to be lowered as only reads larger than 10kbp would genotype SVs.
 
 This can be achieved using the following commands:
 
