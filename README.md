@@ -11,9 +11,9 @@ Miniwalk is a tool for genotyping SVs from a minigraph graph.
 
 ## Motivation
 
-I created this tool as I was interested in capturing SVs from short-read data and there doesn't seem to be such an approach with minigraph graphs as they are incompatible with the vg toolkit.
+I created this tool as I was interested in capturing SVs from short-read data and there doesn't seem to be such an approach with minigraph graphs as they are incompatible with the vg toolkit. Miniwalk makes this possible as bacterial short reads can be assembled, though this approach will likely not be appropriate in larger, eukaryote graphs. In those cases I recommend trying minisr.
 
-It is only able to capture SVs from **assemblies** or long reads, not raw short-read data. Therefore, it is necessary to create an assembly (i.e. using Shovill for short-read data). It is also recommended to create an assembly for long-read data, however long reads can be mapped to the graph and SVs genotyped using minigraph.
+It is able to capture SVs from assemblies or long reads (minisr not tested directly on short-read data). Therefore, it might be necessary to create an assembly (i.e. using Shovill for short-read data). Minisr was created for those local graphs where creating a phased diploid assembly was not possible, however, the initial motivation for miniwalk was thought of genotyping SVs from assemblies, wherever possible.
 
 ## Installation
 
@@ -38,7 +38,7 @@ pip install .
 * nucmer>=4 - for running **ins2dup** module (see Workflow)
 Other dependencies should be installed during miniwalk installation (see Installation).
 
-This tool complements the minigraph output, therefore it is necessary to obtain a vcf file using minigraph. Moreover, you will need to have ![k8](https://github.com/attractivechaos/k8) installed in your environment.
+This tool complements the minigraph output, therefore it is necessary to obtain a vcf file using minigraph. Moreover, you will need to have ![k8](https://github.com/attractivechaos/k8) installed in your environment. If you wish to use minisr because you have a GAF file of mapped, long reads, you will also need a bubble file, obtained from ![gfatools](https://github.com/lh3/gfatools).
 
 *IMPORTANT NOTE*: if your assemblies are highly fragmented, make sure to modify the -l and -d flags when mapping to minigraph, otherwise minigraph will not be able to map your assembly with its default parameters. For mapping to the Mtb-PRG, the flags -l 10000 and -d 5000 should work. If mapping long-read data, the flags may need to be lowered as only reads larger than 10kbp would genotype SVs.
 
@@ -47,6 +47,11 @@ This can be achieved using the following commands:
 ```
 #we map the assembly to the graph and get the paths it traverses
 minigraph -cxasm --call graph.gfa assembly.fasta > sample.bed
+
+#OR map long reads to minigraph graph and use minisr to obtain two bed files, in a diploid sample
+minigraph -cxlr -q10 --vc graph.gfa long_reads.fq.gz > long_reads.gaf
+gfatools bubble graph.gfa > graph.bubble
+miniwalk minisr long_reads.gaf graph.gfa graph.bubble --sample Sample --ploidy diploid -o Sample
 
 #Run the previous command with the reference genome
 minigraph -cxasm --call graph.gfa reference.fasta > reference.bed
@@ -65,30 +70,28 @@ k8 /path/to/minigraph/misc/mgutils-es6.js merge2vcf -s names.txt merged.bed > pa
 
 ## Workflow
 
-There are 4 main pipelines within miniwalk: mod, ref, ins2dup and bench.
+There are 5 main pipelines within miniwalk: mod, ref, ins2dup, minisr and bench.
 
 ```
-usage: miniwalk [-h] {mod,ref,ins2dup,bench} ...
+usage: main.py [-h] {mod,ref,ins2dup,bench,minisr} ...
 
 miniwalk - A tool for genotyping SVs from minigraph graphs.
 
 positional arguments:
-  {mod,ref,ins2dup,bench}
-                        Choose one of the following pipelines (order for genotyping: mod --> ref --> ins2dup; for pipeline-specific flags run,
-                        for example, "miniwalk mod -h")
-    mod                 This script takes a bed file outputted from minigraph -xasm --call and the vcf from merge2vcf to modify the vcf file
-                        to show the SV type and exact positions. Moreover, the gfa file of the pangenome will also be necessary to determine
-                        the exact SV position and length.
+  {mod,ref,ins2dup,bench,minisr}
+                        Choose one of the following pipelines (order for genotyping: mod --> ref --> ins2dup; for pipeline-specific flags run, for example, "miniwalk mod -h")
+    mod                 This script takes a bed file outputted from minigraph -xasm --call and the vcf from merge2vcf to modify the vcf file to show the SV type and exact positions. Moreover, the gfa file of
+                        the pangenome will also be necessary to determine the exact SV position and length.
     ref                 This script takes the output from mod and refines the vcf file by sorting and clustering SVs
-    ins2dup             This script looks at the contiguous bases of each INS to determine if it is instead a DUP. MuMmer must be installed or
-                        available locally.
+    ins2dup             This script looks at the contiguous bases of each INS to determine if it is instead a DUP. MuMmer must be installed or available locally.
     bench               This benchmarks called SVs from minigraph or manta to a standard
+    minisr              This script takes a GAF alignment file and looks at node mapping depth to determine the paths traversed through the graph, creating a BED file ready to be input to miniwalk mod.
 
 options:
   -h, --help            show this help message and exit
 ```
 
-There is an inherent order in the way these pipelines work: mod --> ref --> ins2dup
+There is an inherent order in the way these pipelines work: (minisr -->) mod --> ref --> ins2dup
 
 **mod**
 mod takes the merge2vcf vcf file and goes through those bubbles where the paths from the reference and the sample are different. Inside each bubble, mod will look at specific nodes that are different, those unique to the reference (DEL/INV) and those unique to the sample (INS/DUP/INV).
@@ -159,6 +162,44 @@ options:
                         - mns: manta-called vcf vs svim-asm long-read standard; Precision-Recall output."""
 ```
 
+**minisr**
+New v1.0
+This pipeline takes reads mapped to a minigraph graph in GAF format and determines the nodes traversed through the graph based on read depth across each node. The output is a single bed file compatible with miniwalk mod, or two bed files if the diploid ploidy is selected (default).
+It has only been tested on a human HLA minigraph graph with large SVs (>2,500bp).
+
+```
+usage: main.py minisr [-h] --sample SAMPLE [--ploidy {haploid,diploid}] [--output OUTPUT] [--min-reads MIN_READS] [--min-uniformity MIN_UNIFORMITY] [--min-coverage-fraction MIN_COVERAGE_FRACTION]
+                      [--min-read-cov MIN_READ_COV] [--min-node-cov MIN_NODE_COV] [--max-node-read-ratio MAX_NODE_READ_RATIO]
+                      gaf_file gfa_file bubble_file
+
+positional arguments:
+  gaf_file              Input GAF file
+  gfa_file              Input GFA file
+  bubble_file           Input bubble file
+
+options:
+  -h, --help            show this help message and exit
+  --sample SAMPLE, -s SAMPLE
+                        Sample name
+  --ploidy {haploid,diploid}, -p {haploid,diploid}
+                        Sample ploidy (default: diploid)
+  --output OUTPUT, -o OUTPUT
+                        Output prefix (default: output)
+  --min-reads MIN_READS, -m MIN_READS
+                        Minimum read count for a node to be considered (default: 5)
+  --min-uniformity MIN_UNIFORMITY, -u MIN_UNIFORMITY
+                        Minimum uniformity score using exponential decay of coefficient of variation across a node (default: 0.3)
+  --min-coverage-fraction MIN_COVERAGE_FRACTION, -c MIN_COVERAGE_FRACTION
+                        Minimum coverage across a node to be considered as fully mapped (default: 0.5)
+  --min-read-cov MIN_READ_COV, -r MIN_READ_COV
+                        Minimum coverage of alignment on read (default: 0.9)
+  --min-node-cov MIN_NODE_COV, -n MIN_NODE_COV
+                        Minimum coverage of alignment on node (default: 0.9)
+  --max-node-read-ratio MAX_NODE_READ_RATIO, -rr MAX_NODE_READ_RATIO
+                        Maximum number of times to consider a read mapped to a smaller node (default: reads 2 times larger than a node, solely mapped to that node)
+
+```
+
 ## Output
 
 The vcf file outputted by the tool uses the INFO column to keep the information of the graph.
@@ -177,6 +218,5 @@ NC_000962.3	1481197	INS.1674	TCGTCAAGAGCGCCGTGCCAACACCCCAGAACATGAGGTGGCCCACGGCGA
 
 ## Limitations
 
-* Only works with assemblies.
-* Tested only on *Mycobacterium tuberculosis*, not tested on eukaryotes or other bacterial species, though it should **in principle** work with any minigraph graph.
+* Tested only on *Mycobacterium tuberculosis* and a human HLA graph, though it should **in principle** work with any minigraph graph.
 * Inversions are only detected when they form a single node or an entire bubble, but not contiguous nodes in a bigger bubble; certain INVs could be missed.

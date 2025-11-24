@@ -88,7 +88,9 @@ def main(options):
         if n == len(vcf.index)-1:
             print_vcf(vcf,n)
         n_cluster=[]
+        end = int(vcf.iloc[n,7].split(';')[0].split('=')[1])
         for x in vcf.iloc[n+1:,].index:
+            pos = int(vcf.iloc[x,1])
             if isinstance(vcf.iloc[x,2],float) and math.isnan(vcf.iloc[x,2]):
                 if n_cluster != []:
                     if len(vcf.iloc[n, 3]) > len(vcf.iloc[n, 4]):
@@ -149,7 +151,7 @@ def main(options):
                 if int(vcf.iloc[n, 2].split('.')[1]) > 49:
                     print_vcf(vcf, n)
                 break
-            if vcf.iloc[x,1] > sv_end:
+            if vcf.iloc[x,1] > sv_end or pos > end:
                 if n_cluster != []:
                     if len(vcf.iloc[n,3]) > len(vcf.iloc[n,4]):
                         if vcf.iloc[n,4] == '*':
@@ -212,4 +214,5 @@ def main(options):
                     sv_end = vcf.iloc[x,1] + 250
                 elif (sv_end < (vcf.iloc[x,1] + int(vcf.iloc[x,2].split('.')[1]))):
                     sv_end = vcf.iloc[x,1] + int(vcf.iloc[x,2].split('.')[1]) + 150 
-    
+   
+

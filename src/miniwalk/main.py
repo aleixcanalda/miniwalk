@@ -1,5 +1,5 @@
 import argparse
-from miniwalk.commands import ref,mod,ins2dup,pr_graph_overlap_output4graph_svimasm,pr_graph_overlap_output4graph,pr_graph_overlap,pr_graph_overlap_svimasm,pr_manta_overlap_output4graph_svimasm,pr_manta_overlap_output4graph,pr_manta_overlap,pr_manta_overlap_svimasm
+from miniwalk.commands import ref,mod,ins2dup,minisr,pr_graph_overlap_output4graph_svimasm,pr_graph_overlap_output4graph,pr_graph_overlap,pr_graph_overlap_svimasm,pr_manta_overlap_output4graph_svimasm,pr_manta_overlap_output4graph,pr_manta_overlap,pr_manta_overlap_svimasm
 
 def main():
     parser = argparse.ArgumentParser(description="miniwalk - A tool for genotyping SVs from minigraph graphs.")
@@ -105,6 +105,29 @@ def main():
         - mos: manta-called vcf vs svim-asm long-read standard; SV-csv output.\n
         - mnn: manta-called vcf vs minigraph long-read standard; Precision-Recall output.\n
         - mns: manta-called vcf vs svim-asm long-read standard; Precision-Recall output.""")
+    
+    #minisr
+    parser_command5 = subparsers.add_parser('minisr', help='This script takes a GAF alignment file and looks at node mapping depth to determine the paths traversed through the graph, creating a BED file ready to be input to miniwalk mod.')
+    parser_command5.add_argument('gaf_file', help='Input GAF file')
+    parser_command5.add_argument('gfa_file', help='Input GFA file')
+    parser_command5.add_argument('bubble_file', help='Input bubble file')
+    parser_command5.add_argument('--sample', '-s', required=True, help='Sample name')
+    parser_command5.add_argument('--ploidy', '-p', choices=['haploid', 'diploid'], 
+                        default='diploid', help='Sample ploidy (default: diploid)')
+    parser_command5.add_argument('--output', '-o', default='output', 
+                        help='Output prefix (default: output)')
+    parser_command5.add_argument('--min-reads', '-m', type=int, default=5,
+                        help='Minimum read count for a node to be considered (default: 5)')
+    parser_command5.add_argument('--min-uniformity', '-u', type=int, default=0.3,
+                        help='Minimum uniformity score using exponential decay of coefficient of variation across a node (default: 0.3)')
+    parser_command5.add_argument('--min-coverage-fraction', '-c', type=int, default=0.5,
+                        help='Minimum coverage across a node to be considered as fully mapped (default: 0.5)')
+    parser_command5.add_argument('--min-read-cov', '-r', type=int, default=0.9,
+                        help='Minimum coverage of alignment on read (default: 0.9)')
+    parser_command5.add_argument('--min-node-cov', '-n', type=int, default=0.9,
+                        help='Minimum coverage of alignment on node (default: 0.9)')
+    parser_command5.add_argument('--max-node-read-ratio', '-rr', type=int, default=2,
+                        help='Maximum number of times to consider a read mapped to a smaller node (default: reads 2 times larger than a node, solely mapped to that node)')
 
     args = parser.parse_args()
 
@@ -114,6 +137,8 @@ def main():
         ref.main(args)
     elif args.command == 'ins2dup':
         ins2dup.main(args)
+    elif args.command == 'minisr':
+        minisr.main(args)
     elif args.command == "bench":
         if args.type == "gon":
             pr_graph_overlap_output4graph.main(args)

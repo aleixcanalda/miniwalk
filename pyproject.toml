@@ -1,6 +1,6 @@
 [project]
 name = "miniwalk"
-version = "0.1.0"
+version = "1.0.0"
 description = "miniwalk is a tool for genotyping SVs from minigraph .gfa graphs"
 authors = [
     {name = "aleixcanalda", email = "aleix98@hotmail.com"},
