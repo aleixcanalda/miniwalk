@@ -111,22 +111,22 @@ def main():
     parser_command5.add_argument('gaf_file', help='Input GAF file')
     parser_command5.add_argument('gfa_file', help='Input GFA file')
     parser_command5.add_argument('bubble_file', help='Input bubble file')
-    parser_command5.add_argument('--sample', '-s', required=True, help='Sample name')
-    parser_command5.add_argument('--ploidy', '-p', choices=['haploid', 'diploid'], 
+    parser_command5.add_argument('--sample', '-s',dest="sample", required=True, help='Sample name')
+    parser_command5.add_argument('--ploidy', '-p',dest="ploidy", choices=['haploid', 'diploid'], 
                         default='diploid', help='Sample ploidy (default: diploid)')
-    parser_command5.add_argument('--output', '-o', default='output', 
+    parser_command5.add_argument('--output', '-o',dest="output", default='output', 
                         help='Output prefix (default: output)')
-    parser_command5.add_argument('--min-reads', '-m', type=int, default=5,
+    parser_command5.add_argument('--min-reads', '-m',dest="min_reads", type=int, default=5,
                         help='Minimum read count for a node to be considered (default: 5)')
-    parser_command5.add_argument('--min-uniformity', '-u', type=int, default=0.3,
+    parser_command5.add_argument('--min-uniformity', '-u',dest="min_uniformity", type=int, default=0.3,
                         help='Minimum uniformity score using exponential decay of coefficient of variation across a node (default: 0.3)')
-    parser_command5.add_argument('--min-coverage-fraction', '-c', type=int, default=0.5,
+    parser_command5.add_argument('--min-coverage-fraction', '-c',dest="min_coverage_fraction", type=int, default=0.5,
                         help='Minimum coverage across a node to be considered as fully mapped (default: 0.5)')
-    parser_command5.add_argument('--min-read-cov', '-r', type=int, default=0.9,
+    parser_command5.add_argument('--min-read-cov', '-r',dest="min_read_cov", type=int, default=0.9,
                         help='Minimum coverage of alignment on read (default: 0.9)')
-    parser_command5.add_argument('--min-node-cov', '-n', type=int, default=0.9,
+    parser_command5.add_argument('--min-node-cov', '-n',dest="min_node_cov", type=int, default=0.9,
                         help='Minimum coverage of alignment on node (default: 0.9)')
-    parser_command5.add_argument('--max-node-read-ratio', '-rr', type=int, default=2,
+    parser_command5.add_argument('--max-node-read-ratio', '-rr',dest="max_read_node_ratio", type=int, default=2,
                         help='Maximum number of times to consider a read mapped to a smaller node (default: reads 2 times larger than a node, solely mapped to that node)')
 
     args = parser.parse_args()

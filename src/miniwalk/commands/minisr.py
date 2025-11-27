@@ -942,8 +942,7 @@ def generate_bed_output(bubble_file, node_rpkm_dict, node_length_dict, node_read
     
     return output_files, bubble_thresholds
 
-def main(gaf_file, gfa_file, bubble_file, sample_name, ploidy, output_prefix, min_reads,
-         min_uniformity, min_coverage_fraction, min_read_cov, min_node_cov, max_read_node_ratio):
+def main(options):
     """
     Main processing pipeline
     """
@@ -952,33 +951,33 @@ def main(gaf_file, gfa_file, bubble_file, sample_name, ploidy, output_prefix, mi
     print("="*60)
     
     print("Parsing GFA file first (needed for node lengths)...")
-    node_lengths = parse_gfa_lengths(gfa_file)
+    node_lengths = parse_gfa_lengths(options.gfa_file)
     
     print("Parsing GFA edges (for topology awareness)...")
-    edges = parse_gfa_edges(gfa_file)
+    edges = parse_gfa_edges(options.gfa_file)
     print(f"  Total edges parsed: {sum(len(v) for v in edges.values())}")
     
     print("Parsing GAF file...")
-    print(f"  Min read coverage: {min_read_cov*100:.0f}%")
-    print(f"  Min node coverage: {min_node_cov*100:.0f}%")
+    print(f"  Min read coverage: {options.min_read_cov*100:.0f}%")
+    print(f"  Min node coverage: {options.min_node_cov*100:.0f}%")
     print(f"  (Alignments must meet at least ONE of these thresholds)")
-    print(f"  Max read/node length ratio (single-node): {max_read_node_ratio}x")
-    node_read_counts, node_positions = parse_gaf_reads(gaf_file, node_lengths, min_read_cov, min_node_cov, max_read_node_ratio)
+    print(f"  Max read/node length ratio (single-node): {options.max_read_node_ratio}x")
+    node_read_counts, node_positions = parse_gaf_reads(options.gaf_file, node_lengths, options.min_read_cov, options.min_node_cov, options.max_read_node_ratio)
     
     print("Parsing bubble file for core nodes...")
-    core_nodes = parse_bubble_core_nodes(bubble_file)
+    core_nodes = parse_bubble_core_nodes(options.bubble_file)
     print(f"Total core nodes identified: {len(core_nodes)}")
     
     print("\n" + "="*60)
     print("STEP 2: Filtering nodes by coverage uniformity")
     print("="*60)
-    print(f"Minimum uniformity score: {min_uniformity}")
-    print(f"Minimum coverage fraction: {min_coverage_fraction}")
+    print(f"Minimum uniformity score: {options.min_uniformity}")
+    print(f"Minimum coverage fraction: {options.min_coverage_fraction}")
     
     # Filter nodes based on uniformity
     filtered_read_counts, uniformity_stats, node_depths = filter_nodes_by_uniformity(
         node_read_counts, node_positions, node_lengths,
-        min_uniformity, min_coverage_fraction
+        options.min_uniformity, options.min_coverage_fraction
     )
     
     # Count how many nodes were filtered
@@ -989,8 +988,8 @@ def main(gaf_file, gfa_file, bubble_file, sample_name, ploidy, output_prefix, mi
     # Save uniformity statistics
     uniformity_df = pd.DataFrame.from_dict(uniformity_stats, orient='index')
     uniformity_df.index.name = 'node_id'
-    uniformity_df.to_csv(f'{output_prefix}_uniformity_stats.csv')
-    print(f"Uniformity statistics saved to: {output_prefix}_uniformity_stats.csv")
+    uniformity_df.to_csv(f'{options.output}_uniformity_stats.csv')
+    print(f"Uniformity statistics saved to: {options.output}_uniformity_stats.csv")
     
     # Get all unique nodes from both files
     all_nodes = set(filtered_read_counts.keys()) | set(node_lengths.keys())
@@ -1002,7 +1001,7 @@ def main(gaf_file, gfa_file, bubble_file, sample_name, ploidy, output_prefix, mi
     print("\n" + "="*60)
     print("STEP 3: Calculating RPKM values")
     print("="*60)
-    print(f"Minimum read filter: {min_reads}")
+    print(f"Minimum read filter: {options.min_reads}")
     
     # Create dataframe
     data = []
@@ -1016,7 +1015,7 @@ def main(gaf_file, gfa_file, bubble_file, sample_name, ploidy, output_prefix, mi
         rpkm = calculate_rpkm(read_count, length, total_reads)
         
         # Apply minimum read filter
-        if read_count >= min_reads:
+        if read_count >= options.min_reads:
             node_rpkm_dict[node_id] = rpkm
         else:
             node_rpkm_dict[node_id] = 0  # Treat as absent
@@ -1075,47 +1074,47 @@ def main(gaf_file, gfa_file, bubble_file, sample_name, ploidy, output_prefix, mi
         
         # Save core statistics
         core_stats_df = pd.DataFrame([core_stats])
-        core_stats_df.to_csv(f'{output_prefix}_core_stats.csv', index=False)
-        print(f"\nGlobal core node statistics saved to: {output_prefix}_core_stats.csv")
+        core_stats_df.to_csv(f'{options.output}_core_stats.csv', index=False)
+        print(f"\nGlobal core node statistics saved to: {options.output}_core_stats.csv")
         
         # Save filtered core nodes
-        core_nodes_filtered.to_csv(f'{output_prefix}_core_nodes.csv', index=False)
-        print(f"Filtered core nodes saved to: {output_prefix}_core_nodes.csv")
+        core_nodes_filtered.to_csv(f'{options.output}_core_nodes.csv', index=False)
+        print(f"Filtered core nodes saved to: {options.output}_core_nodes.csv")
     else:
         print("\nWarning: No core nodes > 150bp found!")
         core_stats = None
     
     # Save all node data
-    output_file = f'{output_prefix}_all_nodes.csv'
+    output_file = f'{options.output}_all_nodes.csv'
     df.to_csv(output_file, index=False)
     print(f"All node data saved to: {output_file}")
     
     print("\n" + "="*60)
     print("STEP 5: Generating BED output files")
     print("="*60)
-    print(f"Sample: {sample_name}")
-    print(f"Ploidy: {ploidy}")
+    print(f"Sample: {options.sample}")
+    print(f"Ploidy: {options.ploidy}")
     print(f"Using bubble-specific depth thresholds")
     print(f"Respecting graph topology from GFA edges")
     
     # Generate BED output
     output_files, bubble_thresholds = generate_bed_output(
-        bubble_file, 
+        options.bubble_file, 
         node_rpkm_dict, 
         node_lengths,
         filtered_read_counts,  # Use filtered counts
         node_depths,  # Pass node depths
         edges,  # Pass GFA edges for topology
-        sample_name, 
-        ploidy,
-        output_prefix,
-        min_reads
+        options.sample, 
+        options.ploidy,
+        options.output,
+        options.min_reads
     )
     
     # Save bubble-specific thresholds
     bubble_thresh_df = pd.DataFrame(bubble_thresholds)
-    bubble_thresh_df.to_csv(f'{output_prefix}_bubble_thresholds.csv', index=False)
-    print(f"\nBubble-specific thresholds saved to: {output_prefix}_bubble_thresholds.csv")
+    bubble_thresh_df.to_csv(f'{options.output}_bubble_thresholds.csv', index=False)
+    print(f"\nBubble-specific thresholds saved to: {options.output}_bubble_thresholds.csv")
     
     print(f"\nBED file(s) generated:")
     for f in output_files:
